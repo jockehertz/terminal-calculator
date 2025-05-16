@@ -47,7 +47,7 @@ fn evaluate(input: &str) -> () {
     for token in &tokens {
         match token.token_type {
             TokenType::Number => println!("Type: Number, Lexeme: {}", token.lexeme),
-            TokenType::Keyword => println!("Type: Keyword, Lexeme: {}", token.lexeme),
+            TokenType::Identifier => println!("Type: Identifier, Lexeme: {}", token.lexeme),
 
             // OPERATORS
             TokenType::Negation => println!(

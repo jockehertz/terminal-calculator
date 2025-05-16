@@ -1,20 +1,5 @@
 use crate::lexer::{Token, TokenType};
 
-pub struct BinaryNode {
-    token: Token,
-    a: *const f64,
-    b: *const f64,
-}
-
-pub struct UnaryNode {
-    token: Token,
-    a: *const f64,
-}
-
-pub struct Number {
-    number: Token,
-}
-
 pub enum AstNode {
     Number(f64),
     UnaryOp {
