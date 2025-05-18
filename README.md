@@ -176,3 +176,20 @@ Result: 4
 $ _
 ```
 
+## Pipeline
+Coming features and versions:
+### 0.6.0
+ - Keywords with functions (sin, cos, tan, etc.)
+
+### 0.7.0
+ - Testing for functions
+
+### 0.8.0
+ - C-style variable support
+
+### 0.9.0
+ - Testing for variables
+
+### 1.0.0
+ - Constants! (Pi, euler's number, etc.)
+ - The Factorial operator
