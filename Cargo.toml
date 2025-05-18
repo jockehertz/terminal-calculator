@@ -1,6 +1,10 @@
 [package]
-name = "calc"
-version = "0.3.0"
+name = "terminal-calculator"
+version = "0.5.0"
 edition = "2024"
+
+[[bin]]
+name = "calc"
+path = "src/main.rs"
 
 [dependencies]

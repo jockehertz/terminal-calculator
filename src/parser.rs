@@ -1,6 +1,7 @@
 use crate::lexer::{Token, TokenType};
 use crate::errors::{ParseError};
 
+#[derive(Debug, PartialEq)]
 pub enum AstNode {
     Number(f64),
     UnaryOp {
@@ -128,4 +129,104 @@ pub fn construct_ast(tokens: &Vec<Token>) -> Result<AstNode, ParseError> {
     }
 
     Ok(ast)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn num(n: &str) -> Token {
+        Token { token_type: TokenType::Number, lexeme: n.to_string() }
+    }
+    fn op(token_type: TokenType, lexeme: &str) -> Token {
+        Token {
+            token_type,
+            lexeme: lexeme.to_string(),
+        }
+    }
+
+    // Parses a number in parentheses
+    #[test]
+    fn test_parse_primary_number() {
+        let tokens = vec![num("42")];
+        let (ast, pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(ast, AstNode::Number(42.0));
+        assert_eq!(pos, 1);
+    }
+
+    // 
+    #[test]
+    fn test_parse_primary_parenthesis() {
+        let tokens = vec![
+            op(TokenType::LeftParenthesis, "("),
+            num("7"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (ast, pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(ast, AstNode::Number(7.0));
+        assert_eq!(pos, 3);
+    }
+
+    #[test]
+    fn test_parse_expression_addition() {
+        let tokens = vec![
+            num("1"),
+            op(TokenType::Addition, "+"),
+            num("2"),
+        ];
+        let (ast, pos) = match parse_expression(&tokens, 0, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(
+            ast,
+            AstNode::BinaryOp {
+                operator: TokenType::Addition,
+                operand_1: Box::new(AstNode::Number(1.0)),
+                operand_2: Box::new(AstNode::Number(2.0)),
+            }
+        );
+        assert_eq!(pos, 3);
+    }
+
+    #[test]
+    fn test_parse_expression_precedence() {
+        let tokens = vec![
+            num("1"),
+            op(TokenType::Addition, "+"),
+            num("2"),
+            op(TokenType::Multiplication, "*"),
+            num("3"),
+        ];
+        let (ast, pos) = match parse_expression(&tokens, 0, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(
+            ast,
+            AstNode::BinaryOp {
+                operator: TokenType::Addition,
+                operand_1: Box::new(AstNode::Number(1.0)),
+                operand_2: Box::new(AstNode::BinaryOp {
+                    operator: TokenType::Multiplication,
+                    operand_1: Box::new(AstNode::Number(2.0)),
+                    operand_2: Box::new(AstNode::Number(3.0)),
+                }),
+            }
+        );
+        assert_eq!(pos, 5);
+    }
+
+    #[test]
+    fn test_parse_primary_error() {
+        let tokens = vec![];
+        let result = parse_primary(&tokens, 0);
+        assert!(result.is_err());
+    }
 }

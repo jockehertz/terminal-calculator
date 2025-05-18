@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub enum ParseError {
     UnexpectedEndOfInput,
     MissingClosingParenthesis,
@@ -5,7 +6,21 @@ pub enum ParseError {
     UnexpectedTokensAtEnd,
     //InvalidNumber(String),
 }
+
+#[derive(Debug, PartialEq)]
 pub enum InputError {
     ReadError,
     EmptyInput,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum EvaluationError {
+    DivisionByZero,
+    InvalidOperation,
+    // InvalidInput,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LexerError {
+    InvalidToken(String),
 }

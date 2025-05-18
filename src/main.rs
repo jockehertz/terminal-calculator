@@ -1,10 +1,6 @@
-mod errors;
-mod lexer;
-mod parser;
-mod evaluator;
-use crate::lexer::{Token, TokenType};
-use crate::parser::AstNode;
-use crate::errors::{ParseError, InputError};
+use terminal_calculator::lexer::{Token, TokenType, tokenise};
+use terminal_calculator::parser::{AstNode, construct_ast};
+use terminal_calculator::errors::{ParseError, InputError, EvaluationError, LexerError};
 use std::io::{stdin, stdout, Write};
 use std::env;
 
@@ -18,8 +14,10 @@ macro_rules! debug_println {
 
 struct Context {
     debug_mode: bool,
+    included_tokens: String,
 }
 
+#[derive(Debug, PartialEq)]
 enum Command {
     Exit,
     Debug,
@@ -28,14 +26,17 @@ enum Command {
 
 // Displays a welcome message and starts the REPL 
 fn main() {
-    let mut context = Context { debug_mode: false };
+    let mut context = Context { debug_mode: false, included_tokens: String::new() };
     let argv: Vec<String> = env::args().collect();
     if argv.len() > 1 {
-        if argv[1] == "--debug" || argv[1] == "-d" {
-            context.debug_mode = true;
-        }
+        context = parse_args(argv);
     }
 
+    if context.included_tokens.len() > 0 {
+        evaluate(&context.included_tokens, &context);
+        return;
+        
+    }
     println!("Welcome to the beginnings of my terminal-based calculator!");
     println!("For now, this is only a REPL which tokenises string inputs, feel free to try it!\n");
     repl(&mut context);
@@ -88,16 +89,22 @@ fn input(output: Option<&str>) -> Result<Command, InputError> {
         Err(_) => return Err(InputError::ReadError),
     }
 
-    match input.trim() {
+    match parse_command(input) {
+        Ok(command) => Ok(command),
+        Err(error) => Err(error),
+    }
+}
+
+fn parse_command(input: String) -> Result<Command, InputError> {
+    let input = input.trim();
+    match input {
         "exit" => return Ok(Command::Exit),
         "debug" | "dbg" => return Ok(Command::Debug),
-        _ => {
-            if input.trim().is_empty() {
-                return Err(InputError::EmptyInput);
-            } else {
-                return Ok(Command::Evaluate(input));
-            }
-        }
+        _ => if input.is_empty() {
+            return Err(InputError::EmptyInput);
+        } else {
+            return Ok(Command::Evaluate(input.to_string()));
+        },
     }
 }
 
@@ -106,7 +113,17 @@ fn evaluate(input: &str, context: &Context) -> () {
     debug_println!(context, "\nInput: {}", input); 
     debug_println!(context, "Tokenising..."); 
     
-    let tokens: Vec<Token> = lexer::tokenise(input.to_owned());
+    let tokens: Vec<Token> = match tokenise(input.to_owned()) {
+        Ok(tokens) => tokens,
+        Err(error) => {
+            match error {
+                LexerError::InvalidToken(token) => {
+                    println!("LexerError: Invalid token in input: {}", token);
+                    return;
+                }
+            }
+        }
+    };
     
     debug_println!(context, "Tokenisation complete.");
     debug_println!(context, "Tokens:");
@@ -117,7 +134,7 @@ fn evaluate(input: &str, context: &Context) -> () {
 
     debug_println!(context, "Generating AST...");
 
-    let ast: AstNode = match parser::construct_ast(&tokens) {
+    let ast: AstNode = match construct_ast(&tokens) {
         Ok(ast) => ast,
         Err(error) => {
             match error {
@@ -147,7 +164,25 @@ fn evaluate(input: &str, context: &Context) -> () {
 
     debug_println!(context, "AST Generated.\n");
 
-    let result: f64 = ast.evaluate();
+    let result: f64 = match ast.evaluate() {
+        Ok(result) => result,
+        Err(error) => {
+            match error {
+                EvaluationError::DivisionByZero => {
+                     println!("EvaluationError: Division by zero.");
+                     return;
+                }
+                EvaluationError::InvalidOperation => {
+                    println!("EvaluationError: Invalid operation.");
+                    return;
+                }
+                // EvaluationError::InvalidInput => {
+                //     println!("EvaluationError: Invalid input.");
+                //     return;
+                // }
+            }
+        }
+    };
     println!("Result: {}", result);
 }
 
@@ -234,4 +269,115 @@ fn print_tokens(tokens: &Vec<Token>) {
     }
     println!("Token printing complete.");
     print!("\n");
+}
+
+fn parse_args(args: Vec<String>) -> Context {
+    let mut context = Context { debug_mode: false, included_tokens: String::new() };
+    if args.len() > 1 {
+        if args[1] == "--debug" {
+            context.debug_mode = true;
+            println!("Debug mode enabled.");
+            context.included_tokens = args[2..].join(" ");
+        } else if match args.last() {
+            Some(last) => last == "--debug",
+            None => false,
+        } {
+            context.debug_mode = true;
+            context.included_tokens = args[1..args.len() - 1].join(" ");
+        } else {
+            context.included_tokens = args[1..].join(" ");
+        }
+    }
+    context
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use terminal_calculator::errors::InputError;
+
+    // Checks that CLI arguments are parsed correctly
+    #[test]
+    fn test_cli_arg_parsing_1() {
+        let args = vec!["calc".to_string(), "--debug".to_string(), "3 + 5".to_string()];
+        let context = parse_args(args);
+        assert_eq!(context.debug_mode, true);
+        assert_eq!(context.included_tokens, "3 + 5");
+    }
+
+    // Checks that CLI arguments are parsed correctly
+    #[test]
+    fn test_cli_arg_parsing_2() {
+        let args = vec!["calc".to_string(), "3 + 5".to_string(), "--debug".to_string()];
+        let context = parse_args(args);
+        assert_eq!(context.debug_mode, true);
+        assert_eq!(context.included_tokens, "3 + 5");
+    }
+
+    // Checks that CLI arguments with only --debug are parsed correctly
+    #[test]
+    fn test_cli_arg_parsing_only_debug() {
+        let args = vec!["calc".to_string(), "--debug".to_string()];
+        let context = parse_args(args);
+        assert_eq!(context.debug_mode, true);
+        assert_eq!(context.included_tokens, "");
+    }
+
+    // Checks that CLI arguments with no --debug are parsed correctly
+    #[test]
+    fn test_cli_arg_parsing_no_debug() {
+        let args = vec!["calc".to_string(), "3 + 5".to_string()];
+        let context = parse_args(args);
+        assert_eq!(context.debug_mode, false);
+        assert_eq!(context.included_tokens, "3 + 5");
+    }
+
+    // Checks that CLI arguments with no --debug and no input are parsed correctly
+    #[test]
+    fn test_cli_arg_parsing_no_debug_no_input() {
+        let args = vec!["calc".to_string()];
+        let context = parse_args(args);
+        assert_eq!(context.debug_mode, false);
+        assert_eq!(context.included_tokens, "");
+    }
+
+    // Checks that the input is read correctly
+    #[test]
+    fn test_input_reading() {
+        let input = "3 + 5";
+        let command = parse_command(input.to_string()).unwrap();
+        assert_eq!(command, Command::Evaluate("3 + 5".to_string()));
+    }
+
+    // Checks that parse_command correctly identifies the exit command
+    #[test]
+    fn test_input_reading_exit() {
+        let input = "exit";
+        let command = parse_command(input.to_string()).unwrap();
+        assert_eq!(command, Command::Exit);
+    }
+
+    // Checks that parse_command correctly identifies the debug command
+    #[test]
+    fn test_input_reading_debug() {
+        let input = "debug";
+        let command = parse_command(input.to_string()).unwrap();
+        assert_eq!(command, Command::Debug);
+    }
+
+    // Checks that parse_command correctly identifies the debug command (short form)
+    #[test]
+    fn test_input_reading_debug_short() {
+        let input = "dbg";
+        let command = parse_command(input.to_string()).unwrap();
+        assert_eq!(command, Command::Debug);
+    }
+
+    // Checks that parse_command returns an error for empty input
+    #[test]
+    fn test_input_reading_empty() {
+        let input = "";
+        let command = parse_command(input.to_string());
+        assert_eq!(command, Err(InputError::EmptyInput));
+    }
 }
