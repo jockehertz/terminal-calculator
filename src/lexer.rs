@@ -22,7 +22,6 @@ pub enum TokenType {
 
     // PUNCTUATION
     Exclamation,
-    Period,
     Comma,
     Question,
     Colon,
@@ -55,7 +54,6 @@ impl TokenType {
     pub fn is_punctuation(&self) -> bool {
         match self {
             TokenType::Exclamation |
-            TokenType::Period |
             TokenType::Comma |
             TokenType::Question |
             TokenType::Colon |
@@ -133,36 +131,46 @@ pub fn tokenise(string: String) -> Vec<Token> {
 
     for char in string.chars() {
         match char {
-            ' ' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
-                word = String::from("");
+            ' ' | '\n' | '\t' => {
+                if !word.is_empty() { tokens.push(Token::new(get_token_type(&word.trim()), word.clone())); }
+                word.clear();
             }
 
             //OPERATORS
             '^' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word.trim()), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Exponentiation, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '*' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word.trim()), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Multiplication, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '/' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word.trim()), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Division, char.to_string()));
-                word = String::new();
+                word.clear();
             } 
             '+' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word.trim()), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Addition, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '-' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word.trim()), word.clone())); 
+                }
                 let prev = tokens.last().unwrap().lexeme.clone();
-                if prev != "" {
+                if !prev.is_empty() {
                     match get_token_type(&prev) {
                         TokenType::Number | TokenType::Identifier => tokens.push(
                             Token::new(TokenType::Subtraction, char.to_string())
@@ -172,12 +180,14 @@ pub fn tokenise(string: String) -> Vec<Token> {
                 } else {
                     tokens.push(Token::new(TokenType::Negation, char.to_string()));
                 }
-                word = String::new();
+                word.clear();
             }
 
             // DELIMITERS
             '(' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 let prev = tokens.last().unwrap().lexeme.clone();
                 match get_token_type(&prev) {
                     TokenType::Number | TokenType::Identifier => tokens.push(
@@ -187,71 +197,86 @@ pub fn tokenise(string: String) -> Vec<Token> {
                 }
                 tokens.push(Token::new(TokenType::LeftParenthesis, char.to_string()));
                     
-                word = String::new();
+                word.clear();
             }
             ')' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::RightParenthesis, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '{' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::LeftBrace, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '}' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::RightBrace, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '[' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::LeftBracket, char.to_string()));
-                word = String::new();
+                word.clear();
             } 
             ']' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::RightBracket, char.to_string()));
-                word = String::new();
+                word.clear();
             }
 
             // PUNCTUATION
             '!' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Exclamation, char.to_string()));
-                word = String::new();
+                word.clear();
             }
-            '.' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
-                tokens.push(Token::new(TokenType::Period, char.to_string()));
-                word = String::new();
-            } 
             ',' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Comma, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             '?' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Question, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             ':' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Colon, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             ';' => {
-                if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+                if !word.is_empty() { 
+                    tokens.push(Token::new(get_token_type(&word), word.clone())); 
+                }
                 tokens.push(Token::new(TokenType::Semicolon, char.to_string()));
-                word = String::new();
+                word.clear();
             }
             _ => {
                 word.push(char);
             }
         }
     }
-    if word != "" { tokens.push(Token::new(get_token_type(&word), word)); }
+    if !word.is_empty() { tokens.push(Token::new(get_token_type(&word), word)); }
     return tokens;
 }
 
@@ -271,15 +296,24 @@ fn get_token_type(token: &str) -> TokenType {
         "]" => TokenType::RightBracket,
 
         "!" => TokenType::Exclamation,
-        "." => TokenType::Period,
         "," => TokenType::Comma,
         "?" => TokenType::Question,
         ":" => TokenType::Colon,
         ";" => TokenType::Semicolon,
 
-        _ if token.chars().all(|c| c.is_numeric()) => TokenType::Number,
-        _ if token.chars().all(|c| c.is_ascii()) => TokenType::Identifier,
+        _ if token.parse::<f64>().is_ok() => TokenType::Number,
 
-        _ => panic!("Unknown token: {}", token),
+        _ if {
+            let mut chars = token.chars();
+            match chars.next() {
+                Some(c) if c.is_ascii_alphabetic() || c == '_' => chars.all(|c| c.is_ascii_alphanumeric() || c == '_'),
+                _ => false,
+            }
+        } => TokenType::Identifier,
+
+        _ => {
+            println!("DEBUG: Unknown token type: {:?}", token);
+            panic!("Unknown token type: {}", token);
+        }
     }
 }

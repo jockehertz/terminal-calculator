@@ -1,32 +1,82 @@
+mod errors;
 mod lexer;
 mod parser;
 mod evaluator;
 use crate::lexer::{Token, TokenType};
 use crate::parser::AstNode;
+use crate::errors::{ParseError, InputError};
 use std::io::{stdin, stdout, Write};
+use std::env;
+
+macro_rules! debug_println {
+    ($ctx:expr, $($arg:tt)*) => {
+        if $ctx.debug_mode {
+            println!($($arg)*);
+        }
+    };
+}
+
+struct Context {
+    debug_mode: bool,
+}
+
+enum Command {
+    Exit,
+    Debug,
+    Evaluate(String),
+}
 
 // Displays a welcome message and starts the REPL 
 fn main() {
+    let mut context = Context { debug_mode: false };
+    let argv: Vec<String> = env::args().collect();
+    if argv.len() > 1 {
+        if argv[1] == "--debug" || argv[1] == "-d" {
+            context.debug_mode = true;
+        }
+    }
+
     println!("Welcome to the beginnings of my terminal-based calculator!");
-    println!("For now, this is only a REPL which tokenises string inputs, feel free to try it!");
-    repl();
+    println!("For now, this is only a REPL which tokenises string inputs, feel free to try it!\n");
+    repl(&mut context);
 }
 
 // READ-EVALUATE-PRINT-LOOP (REPL)
-fn repl() -> () {
+fn repl(context: &mut Context) -> () {
     let mut running: bool = true;
     while running {
-        let input: &str = &input(None);
+        let input: Command = match input(None) {
+            Ok(input) => input,
+            Err(error) => {
+                match error {
+                    InputError::ReadError => {
+                        println!("Error: Could not read input.");
+                        continue;
+                    }
+                    InputError::EmptyInput => {
+                        continue;
+                    }
+                }
+            }
+        };
         
         match input {
-            "exit" => running = false,
-            _ => evaluate(input),
+            Command::Exit => running = false,
+            Command::Debug => {
+                context.debug_mode = !context.debug_mode;
+                if context.debug_mode {
+                    println!("Debug mode enabled.");
+                } else {
+                    println!("Debug mode disabled.");
+                }
+            }
+            Command::Evaluate(input) => evaluate(&input, &context),
         }
     }
 }
 
 // Takes an input from the user (READ)
-fn input(output: Option<&str>) -> String {
+fn input(output: Option<&str>) -> Result<Command, InputError> {
     let mut input = String::new();
     match output {
         Some(text) => print!("> {}", text),
@@ -35,16 +85,74 @@ fn input(output: Option<&str>) -> String {
     let _ = stdout().flush();
     match stdin().read_line(&mut input) {
         Ok(_) => (),
-        Err(error) => panic!("Error: {}. \nUnable to read input.", error),
+        Err(_) => return Err(InputError::ReadError),
     }
 
-    return input.trim().to_string();
+    match input.trim() {
+        "exit" => return Ok(Command::Exit),
+        "debug" | "dbg" => return Ok(Command::Debug),
+        _ => {
+            if input.trim().is_empty() {
+                return Err(InputError::EmptyInput);
+            } else {
+                return Ok(Command::Evaluate(input));
+            }
+        }
+    }
 }
 
 // Evaluates the input
-fn evaluate(input: &str) -> () {
+fn evaluate(input: &str, context: &Context) -> () {
+    debug_println!(context, "\nInput: {}", input); 
+    debug_println!(context, "Tokenising..."); 
+    
     let tokens: Vec<Token> = lexer::tokenise(input.to_owned());
-    for token in &tokens {
+    
+    debug_println!(context, "Tokenisation complete.");
+    debug_println!(context, "Tokens:");
+    
+    if context.debug_mode {
+        print_tokens(&tokens);
+    } 
+
+    debug_println!(context, "Generating AST...");
+
+    let ast: AstNode = match parser::construct_ast(&tokens) {
+        Ok(ast) => ast,
+        Err(error) => {
+            match error {
+                ParseError::UnexpectedEndOfInput => {
+                    println!("ParseError: Unexpected end of input.");
+                    return;
+                }
+                ParseError::MissingClosingParenthesis => {
+                    println!("ParseError: Missing closing parenthesis.");
+                    return;
+                }
+                ParseError::UnexpectedToken(token) => {
+                    println!("ParseError: Unexpected token: {}", token);
+                    return;
+                }
+                ParseError::UnexpectedTokensAtEnd => {
+                    println!("ParseError: Unexpected tokens at end of input.");
+                    return;
+                }
+                /* ParseError::InvalidNumber(token) => {
+                    println!("ParseError: Invalid number: {}", token);
+                    return;
+                } */
+            }
+        }
+    };
+
+    debug_println!(context, "AST Generated.\n");
+
+    let result: f64 = ast.evaluate();
+    println!("Result: {}", result);
+}
+
+fn print_tokens(tokens: &Vec<Token>) {
+    for token in tokens {
         match token.token_type {
             TokenType::Number => println!("Type: Number, Lexeme: {}", token.lexeme),
             TokenType::Identifier => println!("Type: Identifier, Lexeme: {}", token.lexeme),
@@ -92,10 +200,6 @@ fn evaluate(input: &str) -> () {
                 "Type: Punctuation, Exclamation mark, Lexeme: {}", 
                 token.lexeme,
                 ),
-            TokenType::Period => println!(
-                "Type: Punctuation, Period, Lexeme: {}", 
-                token.lexeme,
-                ),
             TokenType::Question => println!(
                 "Type: Punctuation, Question mark, Lexeme: {}", 
                 token.lexeme,
@@ -128,10 +232,6 @@ fn evaluate(input: &str) -> () {
                 ),
         }
     }
-    println!("Generating AST...");
-    let ast: AstNode = parser::construct_ast(&tokens);
-    println!("AST Generated.");
-    let result: f64 = ast.evaluate();
-    println!("Result: {}", result);
+    println!("Token printing complete.");
+    print!("\n");
 }
-

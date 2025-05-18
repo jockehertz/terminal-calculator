@@ -1,4 +1,5 @@
 use crate::lexer::{Token, TokenType};
+use crate::errors::{ParseError};
 
 pub enum AstNode {
     Number(f64),
@@ -41,8 +42,11 @@ impl Operator for TokenType {
     }
 }
 
-fn parse_expression(tokens: &Vec<Token>, pos: usize, min_precedence: u8) -> (AstNode, usize) {
-    let (mut left, mut pos) = parse_primary(tokens, pos);
+fn parse_expression(tokens: &Vec<Token>, pos: usize, min_precedence: u8) -> Result<(AstNode, usize), ParseError> {
+    let (mut left, mut pos) = match parse_primary(tokens, pos) {
+        Ok(result) => result,
+        Err(error) => return Err(error),
+    };
 
     while pos < tokens.len() {
         let operator = &tokens[pos];
@@ -55,7 +59,10 @@ fn parse_expression(tokens: &Vec<Token>, pos: usize, min_precedence: u8) -> (Ast
             precedence + 1 
         };
 
-        let (right, new_pos) = parse_expression(tokens, pos + 1, next_min_precedence);
+        let (right, new_position) = match parse_expression(tokens, pos + 1, next_min_precedence) {
+            Ok(result) => result,
+            Err(error) => return Err(error),
+        };
 
         left = AstNode::BinaryOp {
             operator: operator.token_type.clone(),
@@ -63,48 +70,62 @@ fn parse_expression(tokens: &Vec<Token>, pos: usize, min_precedence: u8) -> (Ast
             operand_2: Box::new(right),
         };
 
-        pos = new_pos;
+        pos = new_position;
     }
 
-    (left, pos)
+    Ok((left, pos))
 }
 
-fn parse_primary(tokens: &Vec<Token>, pos: usize) -> (AstNode, usize) {
+fn parse_primary(tokens: &Vec<Token>, pos: usize) -> Result<(AstNode, usize), ParseError> {
     if pos >= tokens.len() {
-        panic!("Unexpected end of input");
+        return Err(ParseError::UnexpectedEndOfInput);
     }
 
     match &tokens[pos].token_type {
-        TokenType::Number => (AstNode::Number(tokens[pos].lexeme.parse::<f64>().unwrap()), pos + 1),
+        TokenType::Number => Ok((AstNode::Number(tokens[pos].lexeme.parse::<f64>().unwrap()), pos + 1)),
+        
         TokenType::LeftParenthesis => {
-            let (expression, new_pos) = parse_expression(tokens, pos + 1, 0);
+            let (expression, new_position) = match parse_expression(tokens, pos + 1, 0) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
             
-            if new_pos >= tokens.len() || tokens[new_pos].token_type != TokenType::RightParenthesis {
-                panic!("Missing closing parenthesis");
+            if new_position >= tokens.len() || tokens[new_position].token_type != TokenType::RightParenthesis {
+                return Err(ParseError::MissingClosingParenthesis);
             }
 
-            (expression, new_pos + 1)
+            Ok((expression, new_position + 1))
         },
+        
         TokenType::Negation => {
-            let (operand, new_position) = parse_primary(tokens, pos + 1);
-            (
+            let (operand, new_position) = match parse_primary(tokens, pos + 1) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
+            Ok((
                 AstNode::UnaryOp {
                     operator: TokenType::Negation,
                     operand: Box::new(operand)
                 },
                 new_position,
-            )
+            ))
         },
-        _ => panic!("Should not be handled here"),
+        
+        _ => {
+            return Err(ParseError::UnexpectedToken(tokens[pos].lexeme.clone()));
+        },
     }
 }
 
-pub fn construct_ast(tokens: &Vec<Token>) -> AstNode {
-    let (ast, pos) = parse_expression(tokens, 0, 0);
+pub fn construct_ast(tokens: &Vec<Token>) -> Result<AstNode, ParseError> {
+    let (ast, pos) = match parse_expression(tokens, 0, 0) {
+        Ok(result) => result,
+        Err(error) => return Err(error),
+    };
 
     if pos < tokens.len() {
-        panic!("Unexpected tokens at the end.");
+        return Err(ParseError::UnexpectedTokensAtEnd);
     }
 
-    ast
+    Ok(ast)
 }
