@@ -1,8 +1,8 @@
 # terminal-calculator (v.0.5.0)
 A terminal-based calculator application, written in Rust.
 
-## installation
-To use this, you must at the moment build from source. 
+## Installation
+To use this, you must at the moment build it from source. 
 
 Download the files (linux), go into the `/terminal-calculator` directory and execute the following commands:
 ```
@@ -12,7 +12,7 @@ sudo cp ./target/release/calc /usr/bin
 
 A cargo installable version will be available once this program is out of beta (v. 1.0.0).
 
-## usage
+## Usage
 There are two ways to use this program, through CLI args or as a REPL:
 
 ### CLI args
@@ -175,6 +175,29 @@ Result: 4
 > exit
 $ _
 ```
+
+## Features
+Currently, the calculator can do the following:
+ - Evaluate arithmetic (+, -, *, and /)
+ - Override the order of operations with parentheses
+ - Use the unary negation operator
+ - Handles integers and decimal values
+
+For the upcoming features, please read [pipeline](#pipeline).
+
+## Dependencies
+ - The rust language
+ - Cargo
+
+## Contributing
+**Everyone is welcome to contribute!**
+If you are interested, please read [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+This project is licensed under the Gnu Public License, version 3.0. For more information, please read [LICENSE](LICENSE).
+
+## Dictionary
+This project contains a dictionary for those unfamiliar with terms used in open source projects, and terms specific to this project. If you are interested, you will find it in [DICTIONARY.md](DICTIONARY.md).
 
 ## Pipeline
 Coming features and versions:
