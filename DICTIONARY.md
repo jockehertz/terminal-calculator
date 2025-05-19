@@ -1,7 +1,7 @@
 Here is an explanation of commonly used words in this open source project:
 
 ### Branch
-A branch is a separate environment of changes, diverging from the other branches of the project. This is to avoid conflicts while multiple people are working on a project. Conflicts are instead handled when branches are [merged](#Merging) with a [pull request](#Pull_Request_(PR))
+A branch is a separate environment of changes, diverging from the other branches of the project. This is to avoid conflicts while multiple people are working on a project. Conflicts are instead handled when branches are [merged](#Merging) with a [pull request](#Pull%20Request%20(PR))
 
 ### Commit
 A commit is a part of [git](#Git), where the changes you have made locally are saved.
@@ -10,7 +10,7 @@ A commit is a part of [git](#Git), where the changes you have made locally are s
 Git is the version control software this project uses, it is also the software which this website is based upon [*Git*Hub](#GitHub).
 
 ### Issue
-An issue is the way we report [bugs](#Bug), [request features](#Feature_Request), and track feature progess. Issues are closed by [maintainers](#Maintainer) or [authors](#Author).
+An issue is the way we report [bugs](#Bug), [request features](#Feature%20Request), and track feature progess. Issues are closed by [maintainers](#Maintainer) or [authors](#Author).
 
 ### main
 `main` is the name for the central [branch](#Branch) of this project.
