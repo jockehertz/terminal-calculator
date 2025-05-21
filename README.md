@@ -1,4 +1,4 @@
-# terminal-calculator (v.0.5.0)
+# terminal-calculator (v.0.6.0)
 A terminal-based calculator application, written in Rust.
 
 ## Installation
@@ -201,8 +201,6 @@ This project contains a dictionary for those unfamiliar with terms used in open 
 
 ## Pipeline
 Coming features and versions:
-### 0.6.0
- - Keywords with functions (sin, cos, tan, etc.)
 
 ### 0.7.0
  - Testing for functions
