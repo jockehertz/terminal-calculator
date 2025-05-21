@@ -214,3 +214,4 @@ Coming features and versions:
 ### 1.0.0
  - Constants! (Pi, euler's number, etc.)
  - The Factorial operator
+ - User-defined functions??
