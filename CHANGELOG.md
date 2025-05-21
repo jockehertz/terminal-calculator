@@ -1,6 +1,12 @@
 # Changelog
 The notable changes in each version of this program will be documented here.
 
+## [0.8.0] - 2025-05-21
+### Added
+ - Variables
+ - Mathematical constants
+ - The `clear` command
+
 ## [0.7.0] - 2025-05-21
 ### Added
  - Testing suite for builtin mathematical functions
