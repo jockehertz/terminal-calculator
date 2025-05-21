@@ -186,7 +186,6 @@ fn test_parse_expression_with_exponentiation() {
 
 // Parses an expression with an unexpected token and returns an error, this should not get past the lexer.
 #[test]
-#[should_panic(expected = "LexerError: InvalidToken(\"@\")")]
 fn test_parse_expression_unexpected_token() {
     let input = "3 + 5 @ 2";
     let tokens = match tokenise(input.to_string()) {

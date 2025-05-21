@@ -1,6 +1,13 @@
 use crate::parser::AstNode;
 use crate::errors::EvaluationError;
 
+#[derive(PartialEq, Debug, Clone)]
+pub enum Function {
+    Sin,
+    Cos,
+    Tan,
+}
+
 impl AstNode {
     pub fn evaluate(&self) -> Result<f64, EvaluationError> {
         match self {
@@ -28,6 +35,17 @@ impl AstNode {
                 };
 
                 match operator.apply_binary(a, b) {
+                    Ok(result) => Ok(result),
+                    Err(error) => Err(error),
+                }
+            }
+            AstNode::Function {function, args} => {
+                let a: f64 = match args.evaluate() {
+                    Ok(result) => result,
+                    Err(error) => return Err(error),
+                };
+                
+                match function.apply_function(a) {
                     Ok(result) => Ok(result),
                     Err(error) => Err(error),
                 }

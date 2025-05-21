@@ -17,6 +17,8 @@ pub enum InputError {
 pub enum EvaluationError {
     DivisionByZero,
     InvalidOperation,
+    NotAFunction,
+    Undefined,
     // InvalidInput,
 }
 
