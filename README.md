@@ -1,4 +1,4 @@
-# terminal-calculator (v.0.6.0)
+# terminal-calculator (v.0.7.0)
 A terminal-based calculator application, written in Rust.
 
 ## Installation
