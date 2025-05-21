@@ -1,4 +1,4 @@
-# terminal-calculator (v.0.7.0)
+# terminal-calculator (v.0.8.0)
 A terminal-based calculator application, written in Rust.
 
 ## Installation
@@ -187,6 +187,23 @@ Implicit multiplication works too!
 Result: 2.0
 ```
 
+#### New for 0.8.0
+You may now use variables!
+```
+> a = 5
+> b = 3
+> c = a * b
+> c
+Result: 15.0
+> _
+```
+There are also constants.
+```
+> sin(PI/2)
+Result: 1.0
+> _
+```
+
 ## Features
 Currently, the calculator can do the following:
  - Evaluate arithmetic (+, -, *, and /)
@@ -194,6 +211,8 @@ Currently, the calculator can do the following:
  - Override the order of operations with parentheses
  - Use the unary negation operator
  - Handles integers and decimal values
+ - User defined variables
+ - Mathematical constants (e, pi, etc.)
 
 For the upcoming features, please read [pipeline](#pipeline).
 
@@ -214,11 +233,8 @@ This project contains a dictionary for those unfamiliar with terms used in open 
 ## Pipeline
 Coming features and versions:
 
-### 0.8.0
- - C-style variable support
-
 ### 0.9.0
- - Testing for variables
+ - Testing for variables (test variables, and adjust all other tests that use evaluate()...)
  - Constants! (Pi, euler's number, etc.)
 
 ### 1.0.0
