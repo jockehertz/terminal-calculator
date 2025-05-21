@@ -176,6 +176,14 @@ fn evaluate(input: &str, context: &Context) -> () {
                     println!("EvaluationError: Invalid operation.");
                     return;
                 }
+                EvaluationError::NotAFunction => {
+                    println!("EvaluationError: Not a function");
+                    return;
+                }
+                EvaluationError::Undefined => {
+                    println!("EvaluationError: tan(x) is Undefined.");
+                    return;
+                }
                 // EvaluationError::InvalidInput => {
                 //     println!("EvaluationError: Invalid input.");
                 //     return;
@@ -191,6 +199,7 @@ fn print_tokens(tokens: &Vec<Token>) {
         match token.token_type {
             TokenType::Number => println!("Type: Number, Lexeme: {}", token.lexeme),
             TokenType::Identifier => println!("Type: Identifier, Lexeme: {}", token.lexeme),
+            TokenType::Keyword(_) => println!("Type: Keyword, Lexeme: {}", token.lexeme),
 
             // OPERATORS
             TokenType::Negation => println!(
