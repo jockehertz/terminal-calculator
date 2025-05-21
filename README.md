@@ -175,10 +175,22 @@ Result: 4
 > exit
 $ _
 ```
+To use a trigonometric function, do that as follows:
+```
+> cos(0)
+Result: 1.0
+```
+
+Implicit multiplication works too!
+```
+> 2cos(0)
+Result: 2.0
+```
 
 ## Features
 Currently, the calculator can do the following:
  - Evaluate arithmetic (+, -, *, and /)
+ - Perform the 3 basic trigonometric functions (`sin`, `cos`, and `tan`)
  - Override the order of operations with parentheses
  - Use the unary negation operator
  - Handles integers and decimal values
