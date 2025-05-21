@@ -154,6 +154,7 @@ pub fn construct_ast(tokens: &Vec<Token>) -> Result<AstNode, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::evaluator::Function;
 
     fn num(n: &str) -> Token {
         Token { token_type: TokenType::Number, lexeme: n.to_string() }
@@ -241,6 +242,155 @@ mod tests {
             }
         );
         assert_eq!(pos, 5);
+    }
+
+    #[test]
+    fn test_parse_simple_function() {
+        let tokens = vec![
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            num("0"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (ast, pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(
+            ast,
+            AstNode::Function {
+                function: TokenType::Keyword(Function::Sin),
+                args: Box::new(AstNode::Number(0.0)),
+            }
+        );
+        assert_eq!(pos, 4);
+    }
+
+    #[test]
+    fn test_parse_function_containing_other_operation() {
+        let tokens = vec![
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            num("0"),
+            op(TokenType::Addition, "+"),
+            num("1"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (ast, pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(
+            ast,
+            AstNode::Function {
+                function: TokenType::Keyword(Function::Sin),
+                args: Box::new(AstNode::BinaryOp {
+                    operator: TokenType::Addition,
+                    operand_1: Box::new(AstNode::Number(0.0)),
+                    operand_2: Box::new(AstNode::Number(1.0)),
+                }),
+            }
+        );
+        assert_eq!(pos, 6);
+    }
+
+    #[test]
+    fn test_parse_function_containing_incomplete_expression() {
+        let tokens = vec![
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            num("0"),
+            op(TokenType::Addition, "+"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let result = parse_primary(&tokens, 0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_expression_with_function_and_unary_negation() {
+        let tokens = vec![
+            op(TokenType::Negation, "-"),
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            num("1"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (ast, pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(
+            ast,
+            AstNode::UnaryOp {
+                operator: TokenType::Negation,
+                operand: Box::new(AstNode::Function {
+                    function: TokenType::Keyword(Function::Sin),
+                    args: Box::new(AstNode::Number(1.0)),
+                }),
+            }
+        );
+        assert_eq!(pos, 5);
+    }
+
+    #[test]
+    fn test_parse_nested_functions() {
+        let tokens = vec![
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            op(TokenType::Keyword(Function::Cos), "Cos"),
+            op(TokenType::LeftParenthesis, "("),
+            num("0"),
+            op(TokenType::RightParenthesis, ")"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (ast, pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+        assert_eq!(
+            ast,
+            AstNode::Function {
+                function: TokenType::Keyword(Function::Sin),
+                args: Box::new(AstNode::Function {
+                    function: TokenType::Keyword(Function::Cos),
+                    args: Box::new(AstNode::Number(0.0)),
+                }),
+            }
+        );
+        assert_eq!(pos, 7);
+    }
+
+    #[should_panic(expected = "ParseError: UnexpectedToken(\")\"")]
+    #[test]
+    fn test_parse_function_with_empty_parentheses() {
+        let tokens = vec![
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (_ast, _pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
+    }
+
+    #[should_panic(expected = "ParseError: UnexpectedToken(\"+\")")]
+    #[test]
+    fn test_parse_function_with_unexpected_token() {
+        let tokens = vec![
+            op(TokenType::Keyword(Function::Sin), "Sin"),
+            op(TokenType::LeftParenthesis, "("),
+            num("0"),
+            op(TokenType::Addition, "+"),
+            op(TokenType::Addition, "+"),
+            num("1"),
+            op(TokenType::RightParenthesis, ")"),
+        ];
+        let (_ast, _pos) = match parse_primary(&tokens, 0) {
+            Ok(result) => result,
+            Err(error) => panic!("ParseError: {:?}", error),
+        };
     }
 
     #[test]

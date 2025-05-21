@@ -59,6 +59,7 @@ fn test_tokeniser_with_implicit_multiplication() {
     assert_eq!(tokens, expected_tokens);
 }
 
+#[test]
 fn test_tokeniser_function() {
     let input = "sin(2)";
     let expected_tokens = vec![
@@ -105,4 +106,15 @@ fn test_tokeniser_identifier_with_implicit_multiplication() {
         Err(error) => panic!("LexerError: {:?}", error),
     };
     assert_eq!(tokens, expected_tokens);
+}
+
+// Tokenises an expression with an unexpected token and returns an error.
+#[test]
+#[should_panic(expected = "LexerError: InvalidIdentifier(\"@\")")]
+fn test_tokenise_expression_unexpected_token() {
+    let input = "3 + 5 @ 2";
+    let _tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
 }
