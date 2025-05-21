@@ -121,6 +121,10 @@ fn evaluate(input: &str, context: &Context) -> () {
                     println!("LexerError: Invalid token in input: {}", token);
                     return;
                 }
+                LexerError::InvalidIdentifier(identifier) => {
+                    println!("LexerError: Invalid variable name: {}", identifier);
+                    return;
+                }
             }
         }
     };

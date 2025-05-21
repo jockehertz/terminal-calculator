@@ -184,19 +184,6 @@ fn test_parse_expression_with_exponentiation() {
     });
 }
 
-// Parses an expression with an unexpected token and returns an error, this should not get past the lexer.
-#[test]
-fn test_parse_expression_unexpected_token() {
-    let input = "3 + 5 @ 2";
-    let tokens = match tokenise(input.to_string()) {
-        Ok(result) => result,
-        Err(error) => panic!("LexerError: {:?}", error),
-    };
-    let ast = construct_ast(&tokens);
-    assert!(ast.is_err());
-    assert_eq!(ast.unwrap_err(), ParseError::UnexpectedToken("@".to_string()));
-}
-
 // Parses an incomplete expression and returns an error
 #[test]
 fn test_parse_expression_missing_token_at_end() {

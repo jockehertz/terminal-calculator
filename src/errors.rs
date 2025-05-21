@@ -25,4 +25,5 @@ pub enum EvaluationError {
 #[derive(Debug, PartialEq)]
 pub enum LexerError {
     InvalidToken(String),
+    InvalidIdentifier(String),
 }

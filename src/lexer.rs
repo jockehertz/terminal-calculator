@@ -2,6 +2,7 @@ use crate::errors::{EvaluationError, LexerError};
 use libm::{sin, cos, tan};
 use std::f64::consts::{PI, FRAC_PI_2};
 use crate::evaluator::Function;
+use unicode_ident::{is_xid_start, is_xid_continue};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TokenType {
@@ -138,11 +139,11 @@ impl TokenType {
 }
 
 trait TokenVector {
-    fn push_word(&mut self, word: &str) -> Result<(), LexerError>;
+    fn push_word(&mut self, word: &str) -> Option<LexerError>;
 }
 
 impl TokenVector for Vec<Token> {
-    fn push_word(&mut self, word: &str) -> Result<(), LexerError> {
+    fn push_word(&mut self, word: &str) -> Option<LexerError> {
         let mut split_index = 0;
         let mut decimal_found = false;
 
@@ -157,42 +158,48 @@ impl TokenVector for Vec<Token> {
             }
         }
         let (number_part, rest) = word.split_at(split_index);
-        let token_type = match get_token_type(&word) {
-            Ok(token_type) => token_type,
-            Err(error) => return Err(error),
-        };                
-        if matches!(token_type, TokenType::Identifier | TokenType::Keyword(_)) && !rest.is_empty() {
-            if let Some(prev) = self.last() {
-                if !prev.lexeme.is_empty() {
-                    match prev.token_type {
-                        TokenType::Number
-                        | TokenType::Identifier
-                        | TokenType::RightParenthesis
-                        | TokenType::RightBracket
-                        | TokenType::RightBrace => self.push(
-                            Token::new(TokenType::Multiplication, String::from("*"))
-                        ),
-                        _ => (),
+        if !rest.is_empty() {
+            let token_type = match get_token_type(&rest) {
+                Ok(token_type) => token_type,
+                Err(error) => return Some(error),
+            };                
+            if matches!(token_type, TokenType::Identifier | TokenType::Keyword(_)) && !rest.is_empty() {
+                if let Some(prev) = self.last() {
+                    if !prev.lexeme.is_empty() {
+                        match prev.token_type {
+                            TokenType::Number
+                            | TokenType::Identifier
+                            | TokenType::RightParenthesis
+                            | TokenType::RightBracket
+                            | TokenType::RightBrace => self.push(
+                                Token::new(TokenType::Multiplication, String::from("*"))
+                            ),
+                            _ => (),
+                        }
                     }
-                }
-            };
+                };
+            }
         }
         
         if !number_part.is_empty() {
             self.push(Token::new(TokenType::Number, number_part.to_string()));
             if !rest.is_empty() {
-                let rest_token_type = match get_token_type(rest) {
+                let rest_token_type = match get_token_type(&rest) {
                     Ok(token_type) => token_type,
-                    Err(error) => return Err(error),
+                    Err(error) => return Some(error),
                 };
                 self.push(Token::new(TokenType::Multiplication, String::from("*")));
                 self.push(Token::new(rest_token_type, rest.to_string()));
             }
         } else {
+            let token_type = match get_token_type(&word) {
+                Ok(token_type) => token_type,
+                Err(error) => return Some(error),
+            };
             self.push(Token::new(token_type, word.to_string()));
         }
 
-        return Ok(());
+        return None;
         
     }
 }
@@ -218,8 +225,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             ' ' | '\n' | '\t' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 word.clear();
@@ -227,50 +234,50 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
 
             //OPERATORS
             '^' => {
-                if !word.is_empty() { 
+                if !word.is_empty() {
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Exponentiation, char.to_string()));
                 word.clear();
             }
             '*' => {
-                if !word.is_empty() { 
+                if !word.is_empty() {
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Multiplication, char.to_string()));
                 word.clear();
             }
             '/' => {
-                if !word.is_empty() { 
+                if !word.is_empty() {
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Division, char.to_string()));
                 word.clear();
             } 
             '+' => {
-                if !word.is_empty() { 
+                if !word.is_empty() {
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Addition, char.to_string()));
                 word.clear();
             }
             '-' => {
-                if !word.is_empty() { 
+                if !word.is_empty() {
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 let prev = match tokens.last() {
@@ -295,8 +302,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             '(' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 let prev = match tokens.last() {
@@ -321,8 +328,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             ')' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::RightParenthesis, char.to_string()));
@@ -331,8 +338,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             '{' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 let prev = match tokens.last() {
@@ -358,8 +365,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             '}' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::RightBrace, char.to_string()));
@@ -368,8 +375,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             '[' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 let prev = match tokens.last() {
@@ -395,8 +402,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             ']' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::RightBracket, char.to_string()));
@@ -407,8 +414,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             '!' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Exclamation, char.to_string()));
@@ -417,8 +424,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             ',' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Comma, char.to_string()));
@@ -427,8 +434,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             '?' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Question, char.to_string()));
@@ -437,8 +444,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             ':' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Colon, char.to_string()));
@@ -447,8 +454,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
             ';' => {
                 if !word.is_empty() { 
                     match tokens.push_word(&word) {
-                        Ok(_) => (),
-                        Err(error) => return Err(error),
+                        Some(error) => return Err(error),
+                        None => (),
                     };
                 }
                 tokens.push(Token::new(TokenType::Semicolon, char.to_string()));
@@ -461,8 +468,8 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
     }
     if !word.is_empty() { 
         match tokens.push_word(&word) {
-            Ok(_) => (),
-            Err(error) => return Err(error),
+            Some(error) => return Err(error),
+            None => (),
         };
     }
     return Ok(tokens);
@@ -497,13 +504,13 @@ fn get_token_type(token: &str) -> Result<TokenType, LexerError> {
         _ if {
             let mut chars = token.chars();
             match chars.next() {
-                Some(c) if c.is_ascii() || c == '_' => chars.all(|c| c.is_ascii_alphanumeric() || c == '_'),
-                _ => false,
+                Some(c) if c == '_' || is_xid_start(c) => chars.all(is_xid_continue),
+                _ => false,      
             }
         } => Ok(TokenType::Identifier),
 
         _ => {
-            return Err(LexerError::InvalidToken(token.to_string()));
+            return Err(LexerError::InvalidIdentifier(token.to_string()));
         }
     }
 }
@@ -573,4 +580,178 @@ mod tests {
         assert_eq!(get_token_type("tan").unwrap(), TokenType::Keyword(Function::Tan));
     }
 
+    #[test]
+    fn test_push_word_basic() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("foo");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        }
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Identifier, lexeme: "foo".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_number() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("2");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Number, lexeme: "2".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_leading_number() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("2foo");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Number, lexeme: "2".to_string() },
+            Token { token_type: TokenType::Multiplication, lexeme: "*".to_string() },
+            Token { token_type: TokenType::Identifier, lexeme: "foo".to_string() },
+        ];
+        assert_eq!(tokens, expected_tokens)
+    }
+
+    #[test]
+    fn test_push_utf8() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("foo_bar_π");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Identifier, lexeme: "foo_bar_π".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_with_double_digit_number() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("42");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Number, lexeme: "42".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_with_decimal_number() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("3.14");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Number, lexeme: "3.14".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_with_decimal_number_and_identifier() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("3.14foo");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Number, lexeme: "3.14".to_string() },
+            Token { token_type: TokenType::Multiplication, lexeme: "*".to_string() },
+            Token { token_type: TokenType::Identifier, lexeme: "foo".to_string() },
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_with_trailing_number() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("foo42");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Identifier, lexeme: "foo42".to_string() },
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[should_panic(expected = "LexerError: InvalidIdentifier(\"🍕\")")]
+    #[test]
+    fn test_push_word_with_leading_emoji() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("🍕");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Identifier, lexeme: "🍕".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_with_leading_underscore() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("_foo");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Identifier, lexeme: "_foo".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_with_leading_number_and_underscore() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("3_foo");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Number, lexeme: "3".to_string() },
+            Token { token_type: TokenType::Multiplication, lexeme: "*".to_string() },
+            Token { token_type: TokenType::Identifier, lexeme: "_foo".to_string() },
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn test_push_word_only_underscore() {
+        let mut tokens: Vec<Token> = vec![];
+        let word = String::from("_");
+        match tokens.push_word(&word) {
+            Some(error) => panic!("LexerError: {:?}", error),
+            None => (),
+        };
+        let expected_tokens: Vec<Token> = vec![
+            Token { token_type: TokenType::Identifier, lexeme: "_".to_string() }
+        ];
+        assert_eq!(tokens, expected_tokens);
+    }
 }
