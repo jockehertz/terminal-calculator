@@ -134,3 +134,93 @@ fn test_evaluate_single_number() {
     };
     assert_eq!(result, 42.0);
 }
+
+#[test]
+fn test_evaluate_division_by_zero() {
+    let input = "1 / 0";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    let result = ast.evaluate();
+    assert!(result.is_err());
+}
+
+// Evaluate an expression with a function
+#[test]
+fn test_evaluate_function() {
+    let input = "sin(0)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    let result = match ast.evaluate() {
+        Ok(result) => result,
+        Err(error) => panic!("EvaluationError: {:?}", error),
+    };
+    assert_eq!(result, 0.0);
+}
+// Evaluate an expression with a function and arguments
+#[test]
+fn test_evaluate_function_with_args() {
+    let input = "sin(0) + cos(0)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    let result = match ast.evaluate() {
+        Ok(result) => result,
+        Err(error) => panic!("EvaluationError: {:?}", error),
+    };
+    assert_eq!(result, 1.0);
+}
+
+// Evaluate an expression with negation
+#[test]
+fn test_evaluate_negation() {
+    let input = "-(3 + 5)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    let result = match ast.evaluate() {
+        Ok(result) => result,
+        Err(error) => panic!("EvaluationError: {:?}", error),
+    };
+    assert_eq!(result, -8.0);
+}
+
+// Evaluate an expression with a negation of a function
+#[test]
+fn test_evaluate_negation_of_function() {
+    let input = "-cos(0)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    let result = match ast.evaluate() {
+        Ok(result) => result,
+        Err(error) => panic!("EvaluationError: {:?}", error),
+    };
+    assert_eq!(result, -1.0);
+}
