@@ -1,7 +1,7 @@
 use crate::errors::{EvaluationError, LexerError};
 use libm::{sin, cos, tan};
 use std::f64::consts::{PI, FRAC_PI_2};
-use crate::evaluator::Function;
+use crate::evaluator::{Function, CONSTS};
 use unicode_ident::{is_xid_start, is_xid_continue};
 
 #[derive(Clone, PartialEq, Debug)]
@@ -9,6 +9,7 @@ pub enum TokenType {
     Number,
     Identifier,
     Keyword(Function),
+    Equals,
 
 // OPERATORS
     Negation,
@@ -189,14 +190,22 @@ impl TokenVector for Vec<Token> {
                     Err(error) => return Some(error),
                 };
                 self.push(Token::new(TokenType::Multiplication, String::from("*")));
-                self.push(Token::new(rest_token_type, rest.to_string()));
+                if CONSTS.contains(&rest.to_lowercase().as_str()) {
+                    self.push(Token::new(rest_token_type, rest.to_lowercase().to_string()));
+                } else {
+                    self.push(Token::new(rest_token_type, rest.to_string()));
+                }
             }
         } else {
             let token_type = match get_token_type(&word) {
                 Ok(token_type) => token_type,
                 Err(error) => return Some(error),
             };
-            self.push(Token::new(token_type, word.to_string()));
+            if CONSTS.contains(&word.to_lowercase().as_str()) {
+                self.push(Token::new(token_type, word.to_lowercase().to_string()));
+            } else {
+                self.push(Token::new(token_type, word.to_string()));
+            }
         }
 
         return None;
@@ -229,6 +238,18 @@ pub fn tokenise(string: String) -> Result<Vec<Token>, LexerError> {
                         None => (),
                     };
                 }
+                word.clear();
+            }
+
+            // EQUALS (ASSIGNMENT)
+            '=' => {
+                if !word.is_empty() { 
+                    match tokens.push_word(&word) {
+                        Some(error) => return Err(error),
+                        None => (),
+                    };
+                }
+                tokens.push(Token::new(TokenType::Equals, char.to_string()));
                 word.clear();
             }
 
