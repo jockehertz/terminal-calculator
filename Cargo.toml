@@ -8,3 +8,4 @@ name = "calc"
 path = "src/main.rs"
 
 [dependencies]
+libm = "0.2.15"

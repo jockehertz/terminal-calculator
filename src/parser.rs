@@ -13,6 +13,10 @@ pub enum AstNode {
         operand_1: Box<AstNode>,
         operand_2: Box<AstNode>,
     },
+    Function {
+        function: TokenType,
+        args: Box<AstNode>,
+    },
 }
 
 trait Operator {
@@ -26,6 +30,7 @@ impl Operator for TokenType {
     fn get_precedence(&self) -> u8 {
         match self {
             TokenType::Negation => return 4,
+            TokenType::Keyword(_) => return 4,
             TokenType::Exponentiation => return 3,
             TokenType::Multiplication => return 2,
             TokenType::Division => return 2,
@@ -106,11 +111,26 @@ fn parse_primary(tokens: &Vec<Token>, pos: usize) -> Result<(AstNode, usize), Pa
             Ok((
                 AstNode::UnaryOp {
                     operator: TokenType::Negation,
-                    operand: Box::new(operand)
+                    operand: Box::new(operand),
                 },
                 new_position,
             ))
         },
+
+        TokenType::Keyword(function) => {
+            let (value, new_position) = match parse_primary(tokens, pos + 1) {
+                Ok(result) => result,
+                Err(error) => return Err(error),
+            };
+            Ok((
+                    AstNode::Function {
+                        function: TokenType::Keyword(function.clone()),
+                        args: Box::new(value),
+                    },
+                    new_position,
+            ))
+
+        }
         
         _ => {
             return Err(ParseError::UnexpectedToken(tokens[pos].lexeme.clone()));
