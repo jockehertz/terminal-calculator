@@ -1,6 +1,11 @@
 # Changelog
 The notable changes in each version of this program will be documented here.
 
+## [0.7.0] - 2025-05-21
+### Added
+ - Testing suite for builtin mathematical functions
+ - Support for UTF-8 in identifier names, using unicode standard identifer rules - plus leading underscores
+
 ## [0.6.0] - 2025-05-21
 ### Added
  - Mathematical functions (sine, cosine, tan)
