@@ -1,6 +1,11 @@
 # Changelog
 The notable changes in each version of this program will be documented here.
 
+## [0.6.0] - 2025-05-21
+### Added
+ - Mathematical functions (sine, cosine, tan)
+ - Separation of leading numbers (`[2x] -> [2] [*] [x]`)
+
 ## [0.5.0] - 2025-05-18
 ### Added
  - CLI argument usage
