@@ -19,6 +19,8 @@ pub enum EvaluationError {
     InvalidOperation,
     NotAFunction,
     Undefined,
+    CannotAssignAConstant(String),
+    UndefinedVariable(String)
     // InvalidInput,
 }
 

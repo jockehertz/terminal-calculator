@@ -1,6 +1,8 @@
 use terminal_calculator::lexer::{Token, TokenType, tokenise};
 use terminal_calculator::parser::{AstNode, construct_ast};
+use terminal_calculator::evaluator::{Environment, EvalResult};
 use terminal_calculator::errors::{ParseError, InputError, EvaluationError, LexerError};
+use clearscreen;
 use std::io::{stdin, stdout, Write};
 use std::env;
 
@@ -22,28 +24,32 @@ enum Command {
     Exit,
     Debug,
     Evaluate(String),
+    Clear,
 }
 
 // Displays a welcome message and starts the REPL 
 fn main() {
     let mut context = Context { debug_mode: false, included_tokens: String::new() };
+    let mut environment = Environment::new();
+    environment.init_consts();
+
+
     let argv: Vec<String> = env::args().collect();
     if argv.len() > 1 {
         context = parse_args(argv);
     }
 
     if context.included_tokens.len() > 0 {
-        evaluate(&context.included_tokens, &context);
+        evaluate(&context.included_tokens, &context, &mut environment);
         return;
         
     }
-    println!("Welcome to the beginnings of my terminal-based calculator!");
-    println!("For now, this is only a REPL which tokenises string inputs, feel free to try it!\n");
-    repl(&mut context);
+    println!("Welcome to the beginnings of my terminal-based calculator!\n");
+    repl(&mut context, &mut environment);
 }
 
 // READ-EVALUATE-PRINT-LOOP (REPL)
-fn repl(context: &mut Context) -> () {
+fn repl(context: &mut Context, environment: &mut Environment) -> () {
     let mut running: bool = true;
     while running {
         let input: Command = match input(None) {
@@ -63,6 +69,9 @@ fn repl(context: &mut Context) -> () {
         
         match input {
             Command::Exit => running = false,
+            Command::Clear => {
+                clearscreen::clear().expect("Failed to clear the screen");
+            }
             Command::Debug => {
                 context.debug_mode = !context.debug_mode;
                 if context.debug_mode {
@@ -71,7 +80,7 @@ fn repl(context: &mut Context) -> () {
                     println!("Debug mode disabled.");
                 }
             }
-            Command::Evaluate(input) => evaluate(&input, &context),
+            Command::Evaluate(input) => evaluate(&input, &context, environment),
         }
     }
 }
@@ -100,6 +109,7 @@ fn parse_command(input: String) -> Result<Command, InputError> {
     match input {
         "exit" => return Ok(Command::Exit),
         "debug" | "dbg" => return Ok(Command::Debug),
+        "clear" => return Ok(Command::Clear),
         _ => if input.is_empty() {
             return Err(InputError::EmptyInput);
         } else {
@@ -109,7 +119,7 @@ fn parse_command(input: String) -> Result<Command, InputError> {
 }
 
 // Evaluates the input
-fn evaluate(input: &str, context: &Context) -> () {
+fn evaluate(input: &str, context: &Context, mut environment: &mut Environment) -> () {
     debug_println!(context, "\nInput: {}", input); 
     debug_println!(context, "Tokenising..."); 
     
@@ -168,9 +178,9 @@ fn evaluate(input: &str, context: &Context) -> () {
 
     debug_println!(context, "AST Generated.\n");
 
-    let result: f64 = match ast.evaluate() {
-        Ok(result) => result,
-        Err(error) => {
+    match ast.evaluate(&mut environment) {
+        EvalResult::Value(result) => println!("Result: {}", result),
+        EvalResult::Error(error) => {
             match error {
                 EvaluationError::DivisionByZero => {
                      println!("EvaluationError: Division by zero.");
@@ -188,14 +198,22 @@ fn evaluate(input: &str, context: &Context) -> () {
                     println!("EvaluationError: tan(x) is Undefined.");
                     return;
                 }
+                EvaluationError::CannotAssignAConstant(name) => {
+                    println!("EvaluationError: {} is a constant, and cannot be reassigned.", name);
+                    return;
+                }
+                EvaluationError::UndefinedVariable(name) => {
+                    println!("EvaluationError: The variable {} is not defined.", name);
+                    return;
+                }
                 // EvaluationError::InvalidInput => {
                 //     println!("EvaluationError: Invalid input.");
                 //     return;
                 // }
             }
         }
+        EvalResult::Assignment(_name, _value) => (),
     };
-    println!("Result: {}", result);
 }
 
 fn print_tokens(tokens: &Vec<Token>) {
@@ -204,6 +222,7 @@ fn print_tokens(tokens: &Vec<Token>) {
             TokenType::Number => println!("Type: Number, Lexeme: {}", token.lexeme),
             TokenType::Identifier => println!("Type: Identifier, Lexeme: {}", token.lexeme),
             TokenType::Keyword(_) => println!("Type: Keyword, Lexeme: {}", token.lexeme),
+            TokenType::Equals => println!("Type: Assignment, Lexeme: {}", token.lexeme),
 
             // OPERATORS
             TokenType::Negation => println!(

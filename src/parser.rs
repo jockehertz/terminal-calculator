@@ -17,6 +17,11 @@ pub enum AstNode {
         function: TokenType,
         args: Box<AstNode>,
     },
+    Assignment {
+        name: String,
+        value: Box<AstNode>,
+    },
+    Variable(String),
 }
 
 trait Operator {
@@ -88,7 +93,13 @@ fn parse_primary(tokens: &Vec<Token>, pos: usize) -> Result<(AstNode, usize), Pa
     }
 
     match &tokens[pos].token_type {
-        TokenType::Number => Ok((AstNode::Number(tokens[pos].lexeme.parse::<f64>().unwrap()), pos + 1)),
+        TokenType::Number => {
+            let number = match tokens[pos].lexeme.parse::<f64>() {
+                Ok(num) => num,
+                Err(_) => return Err(ParseError::UnexpectedToken(tokens[pos].lexeme.clone())),
+            };
+            return Ok((AstNode::Number(number), pos + 1));
+        }
         
         TokenType::LeftParenthesis => {
             let (expression, new_position) = match parse_expression(tokens, pos + 1, 0) {
@@ -131,6 +142,25 @@ fn parse_primary(tokens: &Vec<Token>, pos: usize) -> Result<(AstNode, usize), Pa
             ))
 
         }
+
+        TokenType::Identifier => {
+            let name = tokens[pos].lexeme.clone();
+            if pos + 1 < tokens.len() && tokens[pos + 1].token_type == TokenType::Equals {
+                let (value, new_position) = match parse_expression(tokens, pos + 2, 0) {
+                    Ok(result) => result,
+                    Err(error) => return Err(error),
+                };
+                Ok((
+                    AstNode::Assignment {
+                        name,
+                        value: Box::new(value),
+                    },
+                    new_position,
+                ))
+            } else {
+                Ok((AstNode::Variable(name), pos + 1))
+            }
+        },
         
         _ => {
             return Err(ParseError::UnexpectedToken(tokens[pos].lexeme.clone()));
