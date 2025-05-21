@@ -9,3 +9,4 @@ path = "src/main.rs"
 
 [dependencies]
 libm = "0.2.15"
+unicode-ident = "1.0.18"

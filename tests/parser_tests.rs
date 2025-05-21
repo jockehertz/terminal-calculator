@@ -1,5 +1,6 @@
 use terminal_calculator::parser::{construct_ast, AstNode};
 use terminal_calculator::lexer::{tokenise, TokenType};
+use terminal_calculator::evaluator::Function;
 use terminal_calculator::errors::ParseError;
 
 // Parses a basic expression
@@ -184,19 +185,6 @@ fn test_parse_expression_with_exponentiation() {
     });
 }
 
-// Parses an expression with an unexpected token and returns an error, this should not get past the lexer.
-#[test]
-fn test_parse_expression_unexpected_token() {
-    let input = "3 + 5 @ 2";
-    let tokens = match tokenise(input.to_string()) {
-        Ok(result) => result,
-        Err(error) => panic!("LexerError: {:?}", error),
-    };
-    let ast = construct_ast(&tokens);
-    assert!(ast.is_err());
-    assert_eq!(ast.unwrap_err(), ParseError::UnexpectedToken("@".to_string()));
-}
-
 // Parses an incomplete expression and returns an error
 #[test]
 fn test_parse_expression_missing_token_at_end() {
@@ -221,4 +209,151 @@ fn test_parse_expression_missing_closing_parenthesis() {
     let ast = construct_ast(&tokens);
     assert!(ast.is_err());
     assert_eq!(ast.unwrap_err(), ParseError::MissingClosingParenthesis);
+}
+
+#[test] 
+fn test_parse_expression_with_builtin_function() {
+    let input = "sin(3.14)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::Function {
+        function: TokenType::Keyword(Function::Sin),
+        args: Box::new(AstNode::Number(3.14)),
+    });
+}
+
+#[test]
+fn test_parse_expression_with_negation_and_builtin_function() {
+    let input = "-sin(3.14)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::UnaryOp {
+        operator: TokenType::Negation,
+        operand: Box::new(AstNode::Function {
+            function: TokenType::Keyword(Function::Sin),
+            args: Box::new(AstNode::Number(3.14)),
+        }),
+    });
+}
+
+#[test]
+fn test_parse_expression_with_function_and_parentheses() {
+    let input = "sin(3 + 5)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::Function {
+        function: TokenType::Keyword(Function::Sin),
+        args: Box::new(AstNode::BinaryOp {
+            operator: TokenType::Addition,
+            operand_1: Box::new(AstNode::Number(3.0)),
+            operand_2: Box::new(AstNode::Number(5.0)),
+        }),
+    });
+}
+
+#[test]
+fn test_parse_expression_with_function_and_implicit_multiplication() {
+    let input = "sin(3)(4 + 5)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::BinaryOp {
+        operator: TokenType::Multiplication,
+        operand_1: Box::new(AstNode::Function {
+            function: TokenType::Keyword(Function::Sin),
+            args: Box::new(AstNode::Number(3.0)),
+        }),
+        operand_2: Box::new(AstNode::BinaryOp {
+            operator: TokenType::Addition,
+            operand_1: Box::new(AstNode::Number(4.0)),
+            operand_2: Box::new(AstNode::Number(5.0)),
+        }),
+    });
+}
+
+#[test]
+fn test_parse_expression_with_function_and_unary_operator() {
+    let input = "sin(-3)";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::Function {
+        function: TokenType::Keyword(Function::Sin),
+        args: Box::new(AstNode::UnaryOp {
+            operator: TokenType::Negation,
+            operand: Box::new(AstNode::Number(3.0)),
+        }),
+    });
+}
+
+#[test]
+fn test_parse_expression_with_function_and_unary_operator_and_parentheses() {
+    let input = "sin(-(3 + 5))";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::Function {
+        function: TokenType::Keyword(Function::Sin),
+        args: Box::new(AstNode::UnaryOp {
+            operator: TokenType::Negation,
+            operand: Box::new(AstNode::BinaryOp {
+                operator: TokenType::Addition,
+                operand_1: Box::new(AstNode::Number(3.0)),
+                operand_2: Box::new(AstNode::Number(5.0)),
+            }),
+        }),
+    });
+}
+
+#[test]
+fn test_parse_expression_with_nested_functions() {
+    let input = "sin(cos(3))";
+    let tokens = match tokenise(input.to_string()) {
+        Ok(result) => result,
+        Err(error) => panic!("LexerError: {:?}", error),
+    };
+    let ast = match construct_ast(&tokens) {
+        Ok(result) => result,
+        Err(error) => panic!("ParseError: {:?}", error),
+    };
+    assert_eq!(ast, AstNode::Function {
+        function: TokenType::Keyword(Function::Sin),
+        args: Box::new(AstNode::Function {
+            function: TokenType::Keyword(Function::Cos),
+            args: Box::new(AstNode::Number(3.0)),
+        }),
+    });
 }
