@@ -202,16 +202,13 @@ This project contains a dictionary for those unfamiliar with terms used in open 
 ## Pipeline
 Coming features and versions:
 
-### 0.7.0
- - Testing for functions
-
 ### 0.8.0
  - C-style variable support
 
 ### 0.9.0
  - Testing for variables
+ - Constants! (Pi, euler's number, etc.)
 
 ### 1.0.0
- - Constants! (Pi, euler's number, etc.)
  - The Factorial operator
  - User-defined functions??
