@@ -1,10 +1,13 @@
 use terminal_calculator::lexer::tokenise;
 use terminal_calculator::parser::construct_ast;
+use terminal_calculator::evaluator::{Environment, EvalResult};
 
 // Evaluate a basic AST
 #[test]
 fn test_evaluate_basic() {
     let input = "3 + 5";
+    let mut env = Environment::new();
+
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -13,8 +16,9 @@ fn test_evaluate_basic() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 8.0);
@@ -24,6 +28,7 @@ fn test_evaluate_basic() {
 #[test]
 fn test_evaluate_implicit_multiplication() {
     let input = "3(4 + 5)";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -32,8 +37,9 @@ fn test_evaluate_implicit_multiplication() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
 
@@ -44,6 +50,7 @@ fn test_evaluate_implicit_multiplication() {
 #[test]
 fn test_evaluate_precedence() {
     let input = "3 + 5 * 2 - 8 / 4";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -52,8 +59,9 @@ fn test_evaluate_precedence() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 11.0);
@@ -63,6 +71,7 @@ fn test_evaluate_precedence() {
 #[test]
 fn test_evaluate_parentheses() {
     let input = "(3 + 5) * 2";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -71,8 +80,9 @@ fn test_evaluate_parentheses() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 16.0);
@@ -82,6 +92,7 @@ fn test_evaluate_parentheses() {
 #[test]
 fn test_evaluate_exponentiation() {
     let input = "2 ^ 3 + 1";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -90,8 +101,9 @@ fn test_evaluate_exponentiation() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 9.0);
@@ -101,6 +113,7 @@ fn test_evaluate_exponentiation() {
 #[test]
 fn test_evaluate_unary_negation() {
     let input = "-3 + 5";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -109,8 +122,9 @@ fn test_evaluate_unary_negation() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 2.0);
@@ -120,6 +134,7 @@ fn test_evaluate_unary_negation() {
 #[test]
 fn test_evaluate_single_number() {
     let input = "42";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -128,8 +143,9 @@ fn test_evaluate_single_number() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 42.0);
@@ -138,6 +154,7 @@ fn test_evaluate_single_number() {
 #[test]
 fn test_evaluate_division_by_zero() {
     let input = "1 / 0";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -146,7 +163,7 @@ fn test_evaluate_division_by_zero() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = ast.evaluate();
+    let result = ast.evaluate(&mut env);
     assert!(result.is_err());
 }
 
@@ -154,6 +171,7 @@ fn test_evaluate_division_by_zero() {
 #[test]
 fn test_evaluate_function() {
     let input = "sin(0)";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -162,8 +180,9 @@ fn test_evaluate_function() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 0.0);
@@ -172,6 +191,7 @@ fn test_evaluate_function() {
 #[test]
 fn test_evaluate_function_with_args() {
     let input = "sin(0) + cos(0)";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -180,8 +200,9 @@ fn test_evaluate_function_with_args() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, 1.0);
@@ -191,6 +212,7 @@ fn test_evaluate_function_with_args() {
 #[test]
 fn test_evaluate_negation() {
     let input = "-(3 + 5)";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -199,8 +221,9 @@ fn test_evaluate_negation() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, -8.0);
@@ -210,6 +233,7 @@ fn test_evaluate_negation() {
 #[test]
 fn test_evaluate_negation_of_function() {
     let input = "-cos(0)";
+    let mut env = Environment::new();
     let tokens = match tokenise(input.to_string()) {
         Ok(result) => result,
         Err(error) => panic!("LexerError: {:?}", error),
@@ -218,8 +242,9 @@ fn test_evaluate_negation_of_function() {
         Ok(result) => result,
         Err(error) => panic!("ParseError: {:?}", error),
     };
-    let result = match ast.evaluate() {
-        Ok(result) => result,
+    let result = match ast.evaluate(&mut env) {
+        Ok(EvalResult::Value(result)) => result,
+        Ok(EvalResult::Assignment(_name, _value)) => 0.0,
         Err(error) => panic!("EvaluationError: {:?}", error),
     };
     assert_eq!(result, -1.0);

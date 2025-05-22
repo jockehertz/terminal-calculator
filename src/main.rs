@@ -179,8 +179,9 @@ fn evaluate(input: &str, context: &Context, mut environment: &mut Environment) -
     debug_println!(context, "AST Generated.\n");
 
     match ast.evaluate(&mut environment) {
-        EvalResult::Value(result) => println!("Result: {}", result),
-        EvalResult::Error(error) => {
+        Ok(EvalResult::Value(result)) => println!("Result: {}", result),
+        Ok(EvalResult::Assignment(_name, _value)) => (),
+        Err(error) => {
             match error {
                 EvaluationError::DivisionByZero => {
                      println!("EvaluationError: Division by zero.");
@@ -212,7 +213,6 @@ fn evaluate(input: &str, context: &Context, mut environment: &mut Environment) -
                 // }
             }
         }
-        EvalResult::Assignment(_name, _value) => (),
     };
 }
 

@@ -6,10 +6,10 @@ pub struct Environment {
     variables: HashMap<String, f64>,
 }
 
+#[derive(PartialEq, Debug)]
 pub enum EvalResult {
     Value(f64),
     Assignment(String, f64),
-    Error(EvaluationError),
 }
 
 pub const CONSTS: [&str; 6] = ["pi", "e", "phi", "tau", "sqrt2", "sqrt3"];
@@ -51,67 +51,67 @@ pub enum Function {
 }
 
 impl AstNode {
-    pub fn evaluate(&self, environment: &mut Environment) -> EvalResult {
+    pub fn evaluate(&self, environment: &mut Environment) -> Result<EvalResult, EvaluationError> {
         match self {
-            AstNode::Number(value) => EvalResult::Value(*value),
+            AstNode::Number(value) => Ok(EvalResult::Value(*value)),
             AstNode::UnaryOp {operator, operand} => {
                 let a: f64 = match operand.evaluate(environment) {
-                    EvalResult::Value(result) => result,
-                    EvalResult::Assignment(name, value) => return EvalResult::Assignment(name, value),
-                    EvalResult::Error(error) => return EvalResult::Error(error),
+                    Ok(EvalResult::Value(result)) => result,
+                    Ok(EvalResult::Assignment(name, value)) => return Ok(EvalResult::Assignment(name, value)),
+                    Err(error) => return Err(error),
                 };
 
                 match operator.apply_unary(a) {
-                    Ok(result) => EvalResult::Value(result),
-                    Err(error) => EvalResult::Error(error),
+                    Ok(result) => Ok(EvalResult::Value(result)),
+                    Err(error) => Err(error),
                 }
             }
             AstNode::BinaryOp {operator, operand_1, operand_2} => {
                 let a: f64 = match operand_1.evaluate(environment) {
-                    EvalResult::Value(result) => result,
-                    EvalResult::Assignment(name, value) => return EvalResult::Assignment(name, value),
-                    EvalResult::Error(error) => return EvalResult::Error(error),
+                    Ok(EvalResult::Value(result)) => result,
+                    Ok(EvalResult::Assignment(name, value)) => return Ok(EvalResult::Assignment(name, value)),
+                    Err(error) => return Err(error),
                 };
 
                 let b: f64 = match operand_2.evaluate(environment) {
-                    EvalResult::Value(result) => result,
-                    EvalResult::Assignment(name, value) => return EvalResult::Assignment(name, value),
-                    EvalResult::Error(error) => return EvalResult::Error(error),
+                    Ok(EvalResult::Value(result)) => result,
+                    Ok(EvalResult::Assignment(name, value)) => return Ok(EvalResult::Assignment(name, value)),
+                    Err(error) => return Err(error),
                 };
 
                 match operator.apply_binary(a, b) {
-                    Ok(result) => EvalResult::Value(result),
-                    Err(error) => EvalResult::Error(error),
+                    Ok(result) => Ok(EvalResult::Value(result)),
+                    Err(error) => Err(error),
                 }
             }
             AstNode::Function {function, args} => {
                 let a: f64 = match args.evaluate(environment) {
-                    EvalResult::Value(result) => result,
-                    EvalResult::Assignment(name, value) => return EvalResult::Assignment(name, value),
-                    EvalResult::Error(error) => return EvalResult::Error(error),
+                    Ok(EvalResult::Value(result)) => result,
+                    Ok(EvalResult::Assignment(name, value)) => return Ok(EvalResult::Assignment(name, value)),
+                    Err(error) => return Err(error),
                 };
                 
                 match function.apply_function(a) {
-                    Ok(result) => EvalResult::Value(result),
-                    Err(error) => EvalResult::Error(error),
+                    Ok(result) => Ok(EvalResult::Value(result)),
+                    Err(error) => Err(error),
                 }
             }
             AstNode::Assignment {name, value} => {
                 let a: f64 = match value.evaluate(environment) {
-                    EvalResult::Value(result) => result,
-                    EvalResult::Assignment(name, value) => return EvalResult::Assignment(name, value),
-                    EvalResult::Error(error) => return EvalResult::Error(error),
+                    Ok(EvalResult::Value(result)) => result,
+                    Ok(EvalResult::Assignment(name, value)) => return Ok(EvalResult::Assignment(name, value)),
+                    Err(error) => return Err(error),
                 };
                 match environment.set_variable(name.clone(), a) {
-                    Some(error) => return EvalResult::Error(error),
+                    Some(error) => return Err(error),
                     None => (),
                 };
-                EvalResult::Assignment(name.clone(), a)
+                Ok(EvalResult::Assignment(name.clone(), a))
             }
             AstNode::Variable(name) => {
                 match environment.get_variable(name) {
-                    Some(value) => EvalResult::Value(*value),
-                    None => EvalResult::Error(EvaluationError::UndefinedVariable(name.clone())),
+                    Some(value) => Ok(EvalResult::Value(*value)),
+                    None => Err(EvaluationError::UndefinedVariable(name.clone())),
                 }
             }
         }
